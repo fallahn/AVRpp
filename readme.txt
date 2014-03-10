@@ -43,7 +43,7 @@ AVRpp requires the avr-g++ toolchain, installed with AtmelStudio by default on W
 Example:
 --------
 
-To use the clock class first initialise the timer at the beginning of main(). This is important, it sets up the chip's clock speeds and creates an interrupt used by the class. To configure the timer for a specific chip, see Clock::Init() in Clock.cpp.
+To use the clock class first initialise the timer at the beginning of main(). This is important, it sets up the chip's clock speeds and creates an interrupt used by the class. To configure the timer for a specific chip, see Clock constructor in Clock.cpp.
 
 
 void main()
