@@ -2,9 +2,6 @@
 Matt Marchant 2013 - 2014
 http://trederia.blogspot.com
 
-The zlib license has been used to make this software fully compatible
-with SFML. See http://www.sfml-dev.org/license.php
-
 This software is provided 'as-is', without any express or
 implied warranty. In no event will the authors be held
 liable for any damages arising from the use of this software.
