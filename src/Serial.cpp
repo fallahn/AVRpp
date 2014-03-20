@@ -25,18 +25,16 @@ source distribution.
 
 //registers used are ATMega8 and compatible///
 
-#include <avr/io.h>
 #include <avr/interrupt.h>
-#include <Serial.hpp> 
 
-#ifndef F_CPU
-#define F_CPU 7372800
-#endif //F_CPU
+#include <Serial.hpp> 
 
 namespace
 {
 	const int baudRate = 19200;
 	const int baudPrescale = (((F_CPU / (baudRate * 16UL))) - 1);
+	
+	FILE uartStream;
 }
 
 void Serial::Init(bool useInterrupt)
@@ -52,13 +50,21 @@ void Serial::Init(bool useInterrupt)
 		UCSRB |= (1 << RXCIE);
 		sei();
 	}
+	
+#ifdef HOOK_IO
+	uartStream.put = PutChar;	
+	uartStream.get = GetChar;
+	uartStream.flags = _FDEV_SETUP_RW;
+	
+	stdout = stdin = &uartStream;
+#endif //HOOK_IO
 }
 
-void Serial::Print(const char* s)
+uint8_t Serial::Receive()
 {
-	int i = 0;
-	while(s[i] != '\0')
-		PutChar(s[i++]);
+	while(!(UCSRA & (1 << RXC)));
+	uint8_t b = UDR; //we must at least read it to clear the buffer
+	return b;
 }
 
 void Serial::Flush()
@@ -67,27 +73,30 @@ void Serial::Flush()
 		uint8_t c = UDR;
 }
 
-
 //private
-void Serial::PutChar(char c)
+int Serial::PutChar(char c, FILE* stream)
 {
-	if(c == '\n') PutChar('\r');
+	if(c == '\n') PutChar('\r', stream);
 	while(!(UCSRA & (1 << UDRE)));
 	UDR = c;
+	return 0;
 }
 
-char Serial::GetChar()
+int Serial::GetChar(FILE* stream)
 {
 	while(!(UCSRA & (1 << RXC)));
-	return UDR;
+	uint8_t c = UDR;
+	
+	//PutChar(c, stream);
+	return c;
 }
 
 //ISR for receiving data
 ISR(USART_RXC_vect)
 {
-	//echoes received byte. UDR MUST be read in order
+	//UDR MUST be read in order
 	//to clear interrupt flag, else no more interrupts
 	//will be received.
 	char rx = UDR;
-	Serial::PutChar(&rx);
+	//TODO anything you like with rx
 }

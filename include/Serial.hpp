@@ -23,23 +23,72 @@ and must not be misrepresented as being the original software.
 source distribution.
 *********************************************************************/ 
 
+/********************************************************************
+RS232 utility class.
+--------------------
+
+Static functions provide ability to stream arrays of data out of the uart
+and parse received bytes. Bytes can be received via a leaner blocking
+function or via non-blocking interrupt. This class also hooks stdio so
+that using printf() in any program which includes the Serial class will
+send the data out directly over RS232, providing the ability to send
+debugging messages to an attached terminal. Send() will attempt to
+serialise any data arrays passed to it and send it out in byte order.
+For example:
+
+uint32_t intData[] = {12347, 22, 2298};
+Serial::Send(intData, 3u);
+
+will send:
+
+{00}{00}{30}{3B}{00}{00}{00}{16}{00}{00}{08}{FA}
+*********************************************************************/
+
+
 #ifndef SERIAL_H_
 #define SERIAL_H_
+
+#ifndef F_CPU
+#undef F_CPU //this is important that uart clock frequency is correct
+#define F_CPU 7372800
+#endif //F_CPU
+
+#define HOOK_IO //undefine this to prevent printf() sending out to uart
+
+#include <stdio.h>
+#include <avr/io.h>
 
 class Serial final
 {
 public:	
-	//if use interrupt is true an interrupt is triggered each time a byte is received
+	//if useInterrupt is true an interrupt is triggered each time a byte is received
 	static void Init(bool useInterrupt = false);
-	//strings are C style and MUST be null terminated
-	static void Print(const char* s);
+	//send arbitrary array of data over uart
+	template<typename T>
+	static void Send(const T* data, uint32_t len)
+	{
+		auto size = sizeof(T);
+		for(auto i = 0u; i < len; ++i)
+		{
+			auto current = data[i];
+			for(auto j = 0u; j < size; ++j)
+			{
+				uint8_t byteToSend = (current >> (8 * ((size - 1) - j)));
+				while(!(UCSRA & (1 << UDRE)));
+				UDR = byteToSend;
+			}
+		}
+	}
+	//blocking function, waits until a byte is available before returning it
+	//for non-blocking initialise with interrupts enabled and modify interrupt
+	//vector in serial.cpp
+	static uint8_t Receive();
 	static void Flush();
-	//send a byte to the output buffer
-	static void PutChar(char c);
-	//this is a blocking call which won't return until a byte is received.
-	//for a non-blocking version init serial with interrupt enabled and
-	//handle received bytes with the ISR in Serial.cpp
-	static char GetChar();
+
+private:
+	//these are used internally so printf() will print to the uart
+	static int PutChar(char c, FILE* stream);
+	static int GetChar(FILE* stream);
 };
 
 #endif /* SERIAL_H_ */

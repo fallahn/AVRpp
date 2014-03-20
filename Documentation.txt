@@ -1,0 +1,74 @@
+These classes are, by default, set to use the ATMega8 chip and pin / 
+register compatible devices. The amount of configuration needed for
+other devices depends on the device itself - refer to the
+corresponding technical sheet for specific details.
+
+
+Serial.hpp / Serial.cpp
+----------------------
+
+void Init(bool useInterrupt)
+	Call this first to set up the uart registers. If useInterrupt
+	is true then the USART_RXC_vect vector is called when a byte
+	is received. Modify the vector in Serial.cpp to handle the
+	data as necessary.
+
+void Send(const T* data, uint32_t len)
+	Sends an arbitrary array pointed to by data of type T and length
+	len. Send() will attempt to serialise data in byte order if T is
+	of any type with a size greater than one byte. For example:
+
+	uint32_t intData[] = {12347, 22, 2298};
+	Serial::Send(intData, 3u);
+
+	will send:
+
+	{00}{00}{30}{3B} {00}{00}{00}{16} {00}{00}{08}{FA}
+	
+uint8_t Receive()
+	Blocking call; this function waits until there is a byte on the
+	serial buffer to be read, and returns it when available. For a
+	non-blocking version initialise the Serial class with useInterrupt
+	set to true, and handle incoming data via the service routine
+	defined in Serial.cpp
+	
+When the Serial class is initialised it also hooks stdio, so that
+functions such as printf() will output a formatted ascii string directly
+to the uart, which can be displayed in the RS232 terminal of any
+connected devices. Simply undefine HOOK_IO is this beviour is not required
+
+
+
+AnalogueIn.hpp / AnalogueIn.cpp
+-------------------------------
+
+void Init()
+	Sets up the ADC of the ATMega. Must be called before attempting to
+	read any of the ADC pins.
+	
+void SetReference(Reference ref)
+	Sets the source of the ADC reference voltage. External uses the
+	voltage at the AREF pin, Internal uses the internal 2.56v reference
+
+uint16_t GetValue(uint8_t pin)
+	Returns the reading at pin where pin is the ID of the ADC channel to
+	read
+
+
+Clock.hpp / Clock.cpp
+---------------------
+
+void Init()
+	Performs initial set up of the chip's timer registers. Make sure that
+	F_CPU is correctly configered in Clock.hpp to match the current
+	oscillator settings. The class's accuracy is highly dependent on
+	correct configuration and clock source
+	
+The clock / timer class is intended to quickly and easily create timers
+throughout a program without having to create a long and complicated interrupt
+vector. Create an instance of a Clock::Timer where needed and query it with
+Clock::Timer::Elapsed() and Clock::Timer::Restart(). For example:
+
+Clock::Timer myTimer;
+float time = myTimer.Elapsed();
+float cycleDuration = myTimer.Restart();

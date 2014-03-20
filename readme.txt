@@ -1,4 +1,4 @@
-AVRpp
+AVRpp (AVR plus plus)
 -----
 
 Zlib license.
@@ -38,35 +38,3 @@ How do I use it?
 ----------------
 
 AVRpp requires the avr-g++ toolchain, installed with AtmelStudio by default on Windows, and also available for linux. Simply include the *.hpp and *.cpp file in your project for the required class. AVRpp uses C++11 features and requires -std=c++11 to be set when compiling.
-
-
-Example:
---------
-
-To use the clock class first initialise the timer at the beginning of main(). This is important, it sets up the chip's clock speeds and creates an interrupt used by the class. To configure the timer for a specific chip, see Clock constructor in Clock.cpp.
-
-
-void main()
-{
-	Clock::Init();
-
-	while(1)
-	{
-		//do stuff...
-	}
-}
-
-
-You only have to initialse the clock once. Now a timer can be created anywhere in your code:
-
-Clock::Timer myTimer;
-
-and queried with:
-
-float time = myTimer.Elapsed();
-
-or
-
-float time = myTimer.Restart();
-
-
