@@ -27,6 +27,8 @@ source distribution.
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
+using namespace avr;
+
 //ctor
 Clock::Clock()
 {

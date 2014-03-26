@@ -3,6 +3,11 @@ register compatible devices. The amount of configuration needed for
 other devices depends on the device itself - refer to the
 corresponding technical sheet for specific details.
 
+The classes are split into two namespaces: avr and data. Hardware
+specific features such as serial or adc appear in the avr namespace
+whereas data structures such as array or smart pointer classes are
+in the data namespace.
+
 
 Serial.hpp / Serial.cpp
 ----------------------

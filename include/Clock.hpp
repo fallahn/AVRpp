@@ -31,6 +31,8 @@ source distribution.
 #endif //F_CPU
 #include <util/delay.h>
 
+namespace avr
+{
 class Clock final
 {
 
@@ -55,7 +57,7 @@ private:
 	Clock();
 	volatile static unsigned long m_count;
 };
-
+}
 
 
 #endif /* CLOCK_H_ */

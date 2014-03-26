@@ -37,6 +37,7 @@ namespace
 	FILE uartStream;
 }
 
+using namespace avr;
 void Serial::Init(bool useInterrupt)
 {
 	UCSRB |= (1 << RXEN) | (1 << TXEN);

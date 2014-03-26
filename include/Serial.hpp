@@ -58,6 +58,9 @@ will send:
 #include <stdio.h>
 #include <avr/io.h>
 
+namespace avr
+{
+	
 class Serial final
 {
 public:	
@@ -90,5 +93,5 @@ private:
 	static int PutChar(char c, FILE* stream);
 	static int GetChar(FILE* stream);
 };
-
+}
 #endif /* SERIAL_H_ */

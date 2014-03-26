@@ -31,6 +31,8 @@ source distribution.
 
 #include <avr/io.h>
 
+namespace avr
+{
 class Adc final
 {
 public:
@@ -49,7 +51,7 @@ private:
 	static Reference m_aref;
 	static bool m_initialised;
 };
-
+}
 
 
 #endif /* ANALOGUEIN_H_ */

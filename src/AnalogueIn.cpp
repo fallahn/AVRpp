@@ -25,6 +25,8 @@ source distribution.
 
 #include <AnalogueIn.hpp>
 
+using namespace avr;
+
 Adc::Reference Adc::m_aref = Reference::Default;
 bool Adc::m_initialised = false;
 
