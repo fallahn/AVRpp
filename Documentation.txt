@@ -77,3 +77,48 @@ Clock::Timer::Elapsed() and Clock::Timer::Restart(). For example:
 Clock::Timer myTimer;
 float time = myTimer.Elapsed();
 float cycleDuration = myTimer.Restart();
+
+
+
+Wiznet5100.hpp / Wiznet5100.cpp
+-------------------------------
+
+The WizComm class contains static functions for initialising settings for a
+WIZnet 5100 ethernet chip connected to an AVR (pre-defined ATMega8) via SPI.
+Requires the serial class when sending debug data to an RS232 terminal.
+
+void Init()
+	Sets up the AVR SPI registers and transmits the IP address data saved
+	on the EEPROM to the connected W5100. The hardware address must be set
+	to a unique value before attempting to set up the connection.
+	
+void SPIWrite(regAddress, data)
+	Writes the byte data to the W5100 register address regAddress via SPI.
+	See the W5100 data sheet for full list of registers.
+	
+uint8_t SPIRead(regAddress)
+	Returns the byte of data read at the W5100 register address regAddress,
+	via SPI. See the w%100 data for full list of register addresses.
+	
+void SetRegisterData(regAddress, data, size)
+	Writes a block of data to the W5100 register regAddress pointed to by
+	data of size size, via SPI
+	
+void GetRegisterData(regAddress, data, size)
+	Reads a block of data at W5100 register regAddress of size size and stores
+	in an array pointed to by data via SPI.
+	
+void SetIpAddress(addr)
+	Sets the W5100 IP Address and updates the AVR EEPROM with the data stored
+	in addr which points to an array of 4 bytes representing an IP address.
+	
+void SetMacAddress(addr)
+	Sets the W5100 hardware address and updates the AVR EEPROM with the data
+	stored in addr which points to an array of 6 bytes represnting a unique
+	hardware (MAC) address.
+	
+void SetGatewayAddress(addr)
+	Sets the W5100 gateway address. See SetIpAddress().
+	
+void SetSubnetMask(addr).
+	Sets the W5100 subnet mask. See SetIpAddress()
