@@ -25,13 +25,16 @@ source distribution.
 
 //sends and receives data to a WIZnet W5100 Ethernet processor via SPI//
 //including updating of network settings and writing to eeprom//
+//don't forget to load the *.eep file generated when compiling to the 
+//ATMega's eeprom.
 
 #ifndef WIZNET5100_H_
 #define WIZNET5100_H_
 
 #include <avr/io.h>
+#include <WizReg.hpp>
 
-namespace avr
+namespace wiz
 {
 	
 class WizComm final
@@ -54,6 +57,20 @@ public:
 	static void SetGatewayAddress(const uint8_t* addr);
 	//writes new subnet mask to eeprom and updates wiznet
 	static void SetSubnetMask(const uint8_t* addr);
+	//opens a new socket of protocol on port. returns true on success
+	static bool OpenSocket(uint8_t socket, uint8_t protocol, uint16_t port);
+	//connects given TCP socket to IP address and port. returns true on success
+	static bool Connect(uint8_t socket, const uint8_t* addr, uint16_t port);
+	//starts a TCP socket listening
+	static bool Listen(uint8_t socket);
+	//send a command to W5100 socket register
+	static void SendCommand(uint8_t socket, SockCommand command);
+	//sends data stream over open socket
+	static bool SendData(uint8_t socket, const uint8_t* data, uint16_t size);
+	//stores received data in array pointed to by data
+	static bool RecvData(uint8_t socket, uint8_t* data, uint16_t size);
+	//size of received data
+	static uint16_t RecvSize(uint8_t socket); //TODO should this be private?
 	
 private:
 	//waits for SPI ready flag when transmitting
