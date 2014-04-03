@@ -33,12 +33,13 @@ source distribution.
 namespace
 {
 	//----configuration vars----//
-	//AVR set to ATMega8/328/pin compatible
+	//AVR set to ATMega32/pin compatible
 	volatile uint8_t* SPI_Port = &PORTB;
 	volatile uint8_t* SPI_DDR = SPI_Port - 1u;
-	const uint8_t SPI_SCK = 5u;
-	const uint8_t SPI_MOSI = 3u;
-	const uint8_t SPI_SS = 2u;
+	const uint8_t SPI_SCK = 7u;
+	const uint8_t SPI_MOSI = 5u;
+	const uint8_t SPI_SS = 4u;
+	const uint8_t W_RESET = 1u; //connected to reset pin of W5100 - pull low to reset
 	const uint8_t SPI_EN = 0u; //connected to the SPI enable pin of W5100
 	
 	//----wiznet settings----//
@@ -48,7 +49,7 @@ namespace
 	const uint16_t RxBufferAddress  = 0x6000;
 	const uint16_t TxBufferMask     = 0x07FF; //for 2k buffers - adjust according to buffer size
 	const uint16_t RxBufferMask     = 0x07FF;
-	const uint8_t ChannelSize       = 0x05; //2kb = 4 channel, 8kb = 1 channel etc.
+	const uint8_t ChannelSize       = 0x55; //2kb = 4 channel, 8kb = 1 channel etc.
 	const uint16_t MaxBufferSize    = 512; //max size of incoming data buffer in bytes
 	
 	
@@ -62,10 +63,10 @@ namespace
 	const uint16_t TxSizeRegister			= 0x001B; //transmit memory size
 	
 	//default network settings
-	EEMEM uint8_t e_macAddress[]	= {0x00, 0x23, 0xCD, 0xBA, 0x7D, 0xDD};
-	EEMEM uint8_t e_ipAddress[]		= {192u, 168u, 001u, 190u};
-	EEMEM uint8_t e_subnetMask[]	= {255u, 255u, 255u, 000u};
-	EEMEM uint8_t e_gatewayAddress[]= {192u, 168u, 001u, 001u};
+	EEMEM uint8_t e_macAddress[]	 = {0x00, 0x23, 0xCD, 0xBA, 0x7D, 0xDD};
+	EEMEM uint8_t e_ipAddress[]		 = {192u, 168u, 001u, 190u};
+	EEMEM uint8_t e_subnetMask[]	 = {255u, 255u, 255u, 000u};
+	EEMEM uint8_t e_gatewayAddress[] = {192u, 168u, 001u, 001u};
 		
 	uint8_t macAddress[6];
 	uint8_t ipAddress[4];
@@ -90,9 +91,14 @@ void WizComm::Init()
 	eeprom_read_block(static_cast<void*>(gatewayAddress), static_cast<void*>(e_gatewayAddress), ipAddressSize);
 	
 	//MOSI, SCK, SS and SPI_EN as output
-	*SPI_DDR = (1 << SPI_SCK) | (1 << SPI_MOSI) | (1 << SPI_SS) | (1 << SPI_EN);
+	*SPI_DDR = (1 << SPI_SCK) | (1 << SPI_MOSI) | (1 << SPI_SS) | (1 << SPI_EN) | (1 << W_RESET);
 	IO::Port::Set(SPI_SS, SPI_Port, IO::High);
 	IO::Port::Set(SPI_EN, SPI_Port, IO::Low);
+	//momentary low to reset W5100
+	IO::Port::Set(W_RESET, SPI_Port, IO::Low);
+	_delay_ms(2);
+	IO::Port::Set(W_RESET, SPI_Port, IO::High);
+	_delay_ms(2);
 
 	//enable SPI and set to master
 	SPCR = (1 << SPE) | (1 << MSTR);
@@ -220,19 +226,19 @@ void WizComm::SetGatewayAddress(const uint8_t* addr)
 		gatewayAddress[i] = addr[i];
 		
 	SetRegisterData(GatewayAddressRegister, gatewayAddress, ipAddressSize);
-	eeprom_update_block(static_cast<const void*>(gatewayAddress), static_cast<void*>(e_subnetMask), ipAddressSize);
+	eeprom_update_block(static_cast<const void*>(gatewayAddress), static_cast<void*>(e_gatewayAddress), ipAddressSize);
 }
 
 bool WizComm::OpenSocket(uint8_t socket, uint8_t protocol, uint16_t port)
 {
-	uint16_t statusRegister = Util::GetSocketRegAddress(SockReg::SR, socket);
+	uint16_t statusRegister = SockReg::GetSocketRegAddress(SockReg::SR, socket);
 	//make sure socket is closed before trying to open it
-	if(SPIRead(statusRegister) == static_cast<uint8_t>(SockStatus::Closed))
+	if(SPIRead(statusRegister) == SockStatus::Closed)
 		SendCommand(socket, SockCommand::Close);
 	
 	//set socket protocol and port	
-	SPIWrite(Util::GetSocketRegAddress(SockReg::MR, socket), protocol);
-	uint16_t portRegister = Util::GetSocketRegAddress(SockReg::PORT, socket);
+	SPIWrite(SockReg::GetSocketRegAddress(SockReg::MR, socket), protocol);
+	uint16_t portRegister = SockReg::GetSocketRegAddress(SockReg::PORT, socket);
 	SPIWrite(portRegister, ((port & 0xff00) >> 8));
 	SPIWrite(portRegister + 1, (port & 0x00ff));
 	
@@ -240,7 +246,7 @@ bool WizComm::OpenSocket(uint8_t socket, uint8_t protocol, uint16_t port)
 	SendCommand(socket, SockCommand::Open);
 	
 	//check status to see if we were successful
-	if(SPIRead(statusRegister) == static_cast<uint8_t>(SockStatus::Init))
+	if(SPIRead(statusRegister) == SockStatus::Init)
 	{
 		return true;
 	}
@@ -254,7 +260,7 @@ bool WizComm::OpenSocket(uint8_t socket, uint8_t protocol, uint16_t port)
 bool WizComm::Connect(uint8_t socket, const uint8_t* addr, uint16_t port)
 {
 	//make sure we're trying to make a TCP connection
-	if(SPIRead(Util::GetSocketRegAddress(SockReg::MR, socket)) != static_cast<uint8_t>(SockMode::TCP))
+	if(SPIRead(SockReg::GetSocketRegAddress(SockReg::MR, socket)) != SockMode::TCP)
 	{
 #if DEBUG
 		printf("Socket not in TCP mode, aborting connection attempt\n");
@@ -264,10 +270,10 @@ bool WizComm::Connect(uint8_t socket, const uint8_t* addr, uint16_t port)
 	}
 	
 	//try to connect
-	uint16_t statusRegister = Util::GetSocketRegAddress(SockReg::SR, socket);
-	if(SPIRead(statusRegister) == static_cast<uint8_t>(SockStatus::Init))
+	uint16_t statusRegister = SockReg::GetSocketRegAddress(SockReg::SR, socket);
+	if(SPIRead(statusRegister) == SockStatus::Init)
 	{
-		
+		/*TODO finish this*/
 		
 		return true;
 	}	
@@ -279,13 +285,13 @@ bool WizComm::Connect(uint8_t socket, const uint8_t* addr, uint16_t port)
 bool WizComm::Listen(uint8_t socket)
 {
 	//check socket open and initialised
-	uint16_t statusRegister = Util::GetSocketRegAddress(SockReg::SR, socket);
-	if(SPIRead(statusRegister) == static_cast<uint8_t>(SockStatus::Init))
+	uint16_t statusRegister = SockReg::GetSocketRegAddress(SockReg::SR, socket);
+	if(SPIRead(statusRegister) == SockStatus::Init)
 	{
 		//send request for listen status and wait for result
 		SendCommand(socket, SockCommand::Listen);
 		//check for success
-		if(SPIRead(statusRegister) == static_cast<uint8_t>(SockStatus::Listen))
+		if(SPIRead(statusRegister) == SockStatus::Listen)
 		{
 			return true;
 		}
@@ -297,10 +303,10 @@ bool WizComm::Listen(uint8_t socket)
 	return false;
 }
 
-void WizComm::SendCommand(uint8_t socket, SockCommand command)
+void WizComm::SendCommand(uint8_t socket, SockCommand::Command command)
 {
-	uint16_t controlRegister = Util::GetSocketRegAddress(SockReg::CR, socket);
-	SPIWrite(controlRegister, static_cast<uint8_t>(command));
+	uint16_t controlRegister = SockReg::GetSocketRegAddress(SockReg::CR, socket);
+	SPIWrite(controlRegister, command);
 	while(SPIRead(controlRegister));
 }
 
@@ -312,12 +318,12 @@ bool WizComm::SendData(uint8_t socket, const uint8_t* data, uint16_t size)
 #endif //DEBUG	
 	
 	//check transmit size register is available
-	uint16_t freeSizeReg = Util::GetSocketRegAddress(SockReg::TX_FSR, socket);
+	uint16_t freeSizeReg = SockReg::GetSocketRegAddress(SockReg::TX_FSR, socket);
 	uint16_t txsize = SPIRead(freeSizeReg);
 	txsize = ((txsize & 0x00ff) << 8u) + SPIRead(freeSizeReg + 1u);
 	
 #if DEBUG
-	printf("tx buffer %d free bytes\n", txsize);
+	printf("TX buffer %d free bytes\n", txsize);
 #endif
 
 	//wait for enough bytes to become available for data length
@@ -332,7 +338,7 @@ bool WizComm::SendData(uint8_t socket, const uint8_t* data, uint16_t size)
 		{
 			//quit
 #if DEBUG
-			printf("tx free size timed out\n");
+			printf("TX free size timed out\n");
 #endif
 			SendCommand(socket, SockCommand::Disconnect);
 			return false;
@@ -340,16 +346,16 @@ bool WizComm::SendData(uint8_t socket, const uint8_t* data, uint16_t size)
 	}
 	
 	//get pointer to W5100 tx buffer and fill with our data
-	uint16_t writePointerRegister = Util::GetSocketRegAddress(SockReg::TX_WR, socket);
+	uint16_t writePointerRegister = SockReg::GetSocketRegAddress(SockReg::TX_WR, socket);
 	uint16_t pointer = SPIRead(writePointerRegister);
 	uint16_t offsetAddress = ((pointer & 0x00ff) << 8) + SPIRead(writePointerRegister + 1u);
 #if DEBUG
-	printf("tx buffer found at: %x\n", offsetAddress);
+	printf("TX buffer found at: 0x%x\n", offsetAddress);
 #endif
 	while(size--)
 	{
 		//calc physical buffer address on W5100
-		uint16_t physicalAddress = TxBufferAddress + (offsetAddress & TxBufferMask);
+		uint16_t physicalAddress = (TxBufferAddress + (2048 * socket/*offset for socketId by channel width*/)) + (offsetAddress & TxBufferMask);
 		//write next data byte
 		SPIWrite(physicalAddress, *data);
 		offsetAddress++;
@@ -371,17 +377,17 @@ bool WizComm::RecvData(uint8_t socket, uint8_t* data, uint16_t size)
 	if(size > MaxBufferSize) size = MaxBufferSize - 2u;
 	
 	//get pointer to rx buffer on W5100
-	uint16_t readPointerRegister = Util::GetSocketRegAddress(SockReg::RX_RD, socket);
+	uint16_t readPointerRegister = SockReg::GetSocketRegAddress(SockReg::RX_RD, socket);
 	uint16_t pointer = SPIRead(readPointerRegister);
-	uint16_t offsetAddress = ((pointer & 0x00f) << 8) + SPIRead(readPointerRegister + 1u);
+	uint16_t offsetAddress = (((pointer & 0x00ff) << 8) + SPIRead(readPointerRegister + 1u));
 	
 #if DEBUG
-	printf("rx buffer address: %x\n", offsetAddress);
+	printf("RX buffer address: 0x%x\n", offsetAddress);
 #endif
 	//read data into buffer
 	while(size--)
 	{
-		uint16_t physicalAddress = RxBufferAddress + (offsetAddress & RxBufferMask);
+		uint16_t physicalAddress = (RxBufferAddress + (2048 * socket/*see tx func*/)) + (offsetAddress & RxBufferMask);
 		*data = SPIRead(physicalAddress);
 		offsetAddress++;
 		data++;
@@ -394,8 +400,8 @@ bool WizComm::RecvData(uint8_t socket, uint8_t* data, uint16_t size)
 	SPIWrite(readPointerRegister + 1u, (offsetAddress & 0x00ff));
 	
 	//issue send command and wait
-	uint16_t commandRegister = Util::GetSocketRegAddress(SockReg::CR, socket);
-	SPIWrite(commandRegister, static_cast<uint8_t>(SockCommand::Recv));
+	uint16_t commandRegister = SockReg::GetSocketRegAddress(SockReg::CR, socket);
+	SPIWrite(commandRegister, SockCommand::Recv);
 	_delay_us(6);
 	
 	return true;
@@ -403,7 +409,7 @@ bool WizComm::RecvData(uint8_t socket, uint8_t* data, uint16_t size)
 
 uint16_t WizComm::RecvSize(uint8_t socket)
 {
-	uint16_t receivedSizeRegister = Util::GetSocketRegAddress(SockReg::RX_RSR, socket);
+	uint16_t receivedSizeRegister = SockReg::GetSocketRegAddress(SockReg::RX_RSR, socket);
 	return ((SPIRead(receivedSizeRegister) & 0x00ff) << 8) + SPIRead(receivedSizeRegister + 1u);
 }
 
