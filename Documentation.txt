@@ -122,3 +122,41 @@ void SetGatewayAddress(addr)
 	
 void SetSubnetMask(addr).
 	Sets the W5100 subnet mask. See SetIpAddress()
+	
+	
+	
+KeyPad.hpp / KeyPad.cpp
+-----------------------
+
+A group of static functions for use when interfacing with a keypad. The class 
+assumes that the rows of the keypad are connected to an output of the ATmega,
+and the columns are connected to an input. 
+
+for example:
+http://extremeelectronics.co.in/avrtutorials/images/Schematic_4x3_Keypad_AVR.gif
+
+As with the other classes, configuration variables are found in the anonymous 
+namespace at the top of KeyPad.cpp. The class implements an event queue, similar
+to desktop environments, which must be polled for keypad events.
+
+void Update()
+	Must be called repteatedly from the main program loop to keep the event
+	queue up to date.
+
+bool KeyPressed(Key key);
+	Returns true if key is currently pressed, false if otherwise.
+
+bool PollEvent(Event& evt)
+	Returns true while venets remain in the queue, and should be called until
+	returns	false, to make sure all events are handled. Event data is place 
+	in evt. For example:
+	
+	while(PollEvent(e))
+	{
+		if(e.type == KeyPad::Event::Type::KEY_PRESSED)
+			printf("Key pressed: %s\n", e.valueAsChar);
+			
+		else if(e.type == KeyPad::Event::Type::KEY_RELEASED)
+			printf("Key pressed: %d\n", e.valueAsInt);			
+	}
+	
