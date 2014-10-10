@@ -53,6 +53,8 @@ namespace
 	const uint8_t queueSize = 12u;
 }
 
+using namespace avr;
+
 uint16_t KeyPad::m_mask = 0u;
 uint16_t KeyPad::m_prevMask = 0u;
 KeyPad::Event KeyPad::m_events[] = {Event(), Event(), Event(), Event(), Event(), Event(), Event(), Event(), Event(), Event(), Event(), Event()};

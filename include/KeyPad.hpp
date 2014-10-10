@@ -28,6 +28,9 @@ source distribution.
 
 #include <stdint-gcc.h>
 
+namespace avr
+{
+
 typedef uint8_t Scancode;
 class KeyPad final
 {
@@ -78,6 +81,6 @@ private:
 	static uint8_t m_queuePosition;
 };
 
-
+} //namespace avr
 
 #endif /* KEYPAD_H_ */
