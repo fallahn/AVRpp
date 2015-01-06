@@ -29,6 +29,7 @@ source distribution.
 
 #include <util/delay.h>
 #include <avr/eeprom.h>
+#include <string.h>
 
 namespace
 {
@@ -195,8 +196,7 @@ void WizComm::GetRegisterData(uint16_t regAddr, uint8_t* data, uint32_t size)
 
 void WizComm::SetMacAddress(const uint8_t* addr)
 {
-	for(auto i = 0u; i < macAddressSize; ++i)
-		macAddress[i] = addr[i];
+	memcpy(macAddress, addr, macAddressSize);
 	
 	SetRegisterData(HardwareAddressRegister, macAddress, macAddressSize);
 	eeprom_update_block(static_cast<const void*>(macAddress), static_cast<void*>(e_macAddress), macAddressSize);	
@@ -204,8 +204,7 @@ void WizComm::SetMacAddress(const uint8_t* addr)
 
 void WizComm::SetIpAddress(const uint8_t* addr)
 {
-	for(auto i = 0u; i < ipAddressSize; ++i)
-		ipAddress[i] = addr[i];
+	memcpy(ipAddress, addr, ipAddressSize);
 		
 	SetRegisterData(IpAddressRegister, ipAddress, ipAddressSize);
 	eeprom_update_block(static_cast<const void*>(ipAddress), static_cast<void*>(e_ipAddress), ipAddressSize);
@@ -213,8 +212,7 @@ void WizComm::SetIpAddress(const uint8_t* addr)
 
 void WizComm::SetSubnetMask(const uint8_t* addr)
 {
-	for(auto i = 0u; i < ipAddressSize; ++i)
-		subnetMask[i] = addr[i];
+	memcpy(subnetMask, addr, ipAddressSize);
 		
 	SetRegisterData(SubnetMaskRegister, subnetMask, ipAddressSize);
 	eeprom_update_block(static_cast<const void*>(subnetMask), static_cast<void*>(e_subnetMask), ipAddressSize);
@@ -222,8 +220,7 @@ void WizComm::SetSubnetMask(const uint8_t* addr)
 
 void WizComm::SetGatewayAddress(const uint8_t* addr)
 {
-	for(auto i = 0u; i < ipAddressSize; ++i)
-		gatewayAddress[i] = addr[i];
+	memcpy(gatewayAddress, addr, ipAddressSize);
 		
 	SetRegisterData(GatewayAddressRegister, gatewayAddress, ipAddressSize);
 	eeprom_update_block(static_cast<const void*>(gatewayAddress), static_cast<void*>(e_gatewayAddress), ipAddressSize);
