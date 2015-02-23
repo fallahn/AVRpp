@@ -28,13 +28,27 @@ source distribution.
 
 #include <stdlib.h>
 
-
 namespace data
 {
 template <typename T> class unique_ptr final
 {
 public:
 	unique_ptr(T* ptr = nullptr) : m_ptr(ptr){};
+	unique_ptr(unique_ptr<T>&& other)
+	{
+		m_ptr = other.m_ptr;	
+		other.m_ptr = nullptr;
+	};
+	
+	unique_ptr<T>& operator = (unique_ptr<T>&& other)
+	{
+		if(other.m_ptr == m_ptr) return *this;
+		
+		m_ptr = other.m_ptr;
+		other.m_ptr = nullptr;
+		return *this;
+	};
+		
 	~unique_ptr(){free(m_ptr);};
 
 	T* get(){return m_ptr;}
