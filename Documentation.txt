@@ -160,3 +160,36 @@ bool PollEvent(Event& evt)
 			printf("Key pressed: %d\n", e.valueAsInt);			
 	}
 	
+
+List.hpp
+--------
+
+Implements a doubly linked list of type T. Similar to STL list, only with no
+iterator support. Useful for FILO / LILO stack or queue behaviour of abitrary
+types. Requires the EnableInheritance.hpp/cpp files to be included in the current
+project, or new/delete operators to be otherwise defined. T must also have a valid
+copy constructor as items are copied into the list, not moved (on the TODO list)
+
+void PushFront(const T& val)
+	Pushes a copy of val to the front of the list
+
+void PopFront()
+	Pops the current front value from the front of the list
+
+T* Front()
+	Returns a reference to the current front value or nullptr if list is empty
+
+void PushBack(const T& val)
+	Pushes a copy of val to the back of the list
+
+void PopBack()
+	Pops the backmost value at the end of the list
+
+T* Back()
+	Returns a reference to the back most value of the list
+
+unsigned int Size()
+	Returns the current size of the list.
+
+NOTE: care should be taken when retaining references to items in the list as
+popping the values will invalidate references leading to dangling pointers.
