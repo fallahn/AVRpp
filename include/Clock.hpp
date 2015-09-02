@@ -45,7 +45,7 @@ public:
 	public:
 		Timer(): m_timer (&m_count){Restart();};
 		//returns time elapsed since last restart in seconds
-		float Elapsed();
+		float Elapsed() const;
 		//returns time since last restart in seconds and resets timer
 		float Restart();
 	private:

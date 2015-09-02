@@ -48,7 +48,7 @@ Clock::Clock()
 volatile unsigned long Clock::m_count = 0u;
 
 //----timer class-----//
-float Clock::Timer::Elapsed()
+float Clock::Timer::Elapsed() const
 {
 	return static_cast<float>(*m_timer - m_startTime) / 1000.f;
 }
